@@ -4,6 +4,7 @@ nemo_toolkit[all] # As recommended by NVIDIA for full features, including diariz
 torch
 librosa # Used by diarize_nemo_auto.py for audio loading initially, though NeMo might also have its own. Good to keep.
 ollama # Python client for Ollama
+Flask # For the Web UI
 
 # Potentially other dependencies if NeMo's [all] doesn't cover everything or if specific versions are needed.
 # For now, these are the main ones identified.

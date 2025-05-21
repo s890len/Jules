@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Local Audio Pipeline Interface</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            margin: 20px;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+        .container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        h2, h3 {
+            color: #555;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 5px;
+        }
+        label {
+            display: block;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+        input[type="text"], input[type="file"] {
+            width: calc(100% - 22px); /* Full width minus padding and border */
+            padding: 8px 10px;
+            margin-top: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        input[type="checkbox"] {
+            margin-right: 5px;
+        }
+        .checkbox-label {
+            font-weight: normal;
+        }
+        button[type="submit"] {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 20px;
+        }
+        button[type="submit"]:hover {
+            background-color: #0056b3;
+        }
+        #statusLog {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ccc;
+            padding: 10px;
+            background-color: #e9ecef;
+            white-space: pre-wrap; /* Allows wrapping of long lines but preserves spaces */
+            word-wrap: break-word; /* Breaks long words if necessary */
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+        #resultsArea {
+            margin-top: 10px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            background-color: #f9f9f9;
+            border-radius: 4px;
+        }
+        .form-section {
+            margin-bottom: 20px;
+        }
+        .output-section {
+            margin-top: 30px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Local Audio Pipeline Interface</h1>
+
+        <div class="form-section">
+            <h2>Run Pipeline</h2>
+            <form id="pipelineForm" enctype="multipart/form-data">
+                <div>
+                    <label for="audio_file">Audio File:</label>
+                    <input type="file" id="audio_file" name="audio_file" accept="audio/*" required>
+                </div>
+
+                <div>
+                    <label style="margin-top: 15px;">Options:</label>
+                    <input type="checkbox" id="skip_clean" name="skip_clean" value="true">
+                    <label for="skip_clean" class="checkbox-label">Skip Audio Cleaning</label>
+                    <br>
+                    <input type="checkbox" id="skip_summary" name="skip_summary" value="true">
+                    <label for="skip_summary" class="checkbox-label">Skip Summarization</label>
+                </div>
+
+                <div>
+                    <label for="transcribe_model_size">Whisper Model Size:</label>
+                    <input type="text" id="transcribe_model_size" name="transcribe_model_size" value="large-v3">
+                </div>
+
+                <div>
+                    <label for="transcribe_lang">Transcription Language:</label>
+                    <input type="text" id="transcribe_lang" name="transcribe_lang" value="ru">
+                </div>
+
+                <div>
+                    <label for="transcribe_prompt">Transcription Prompt (Optional):</label>
+                    <input type="text" id="transcribe_prompt" name="transcribe_prompt" placeholder="Optional">
+                </div>
+
+                <div>
+                    <label for="diarize_max_speakers">Max Speakers (Diarization):</label>
+                    <input type="text" id="diarize_max_speakers" name="diarize_max_speakers" value="5">
+                </div>
+                
+                <div>
+                    <label for="summarize_model">Summarization LLM (Ollama Model):</label>
+                    <input type="text" id="summarize_model" name="summarize_model" value="gemma:27b">
+                </div>
+
+                <div>
+                    <label for="summarize_max_chars">Summarization Max Chars:</label>
+                    <input type="text" id="summarize_max_chars" name="summarize_max_chars" value="15000">
+                </div>
+
+                <button type="submit">Run Pipeline</button>
+            </form>
+        </div>
+
+        <div class="output-section">
+            <h3>Status:</h3>
+            <pre id="statusLog" style="max-height: 300px; overflow-y: auto; border: 1px solid #ccc; padding: 10px;"></pre>
+
+            <h3>Results:</h3>
+            <div id="resultsArea">
+                <p>Output file paths will appear here.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('pipelineForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+
+            const formData = new FormData(event.target);
+            const statusLog = document.getElementById('statusLog');
+            const resultsArea = document.getElementById('resultsArea');
+
+            statusLog.textContent = 'Starting pipeline... Please wait. This can take several minutes.';
+            resultsArea.innerHTML = ''; // Clear previous results
+
+            try {
+                const response = await fetch('/run', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                statusLog.textContent = ''; // Clear "Starting pipeline..."
+                const result = await response.json();
+
+                if (result.stdout_log) {
+                    statusLog.textContent += "Pipeline STDOUT:\n" + result.stdout_log + "\n\n";
+                }
+                if (result.stderr_log) { // If backend sends stderr_log for errors
+                    statusLog.textContent += "Pipeline STDERR:\n" + result.stderr_log + "\n\n";
+                }
+                
+                if (response.ok && result.status === 'success') {
+                    statusLog.textContent += "Status: Success!\n" + result.message + "\n";
+                    let resultsHTML = '<p>Pipeline completed successfully.</p>';
+                    if (result.transcript_file_path) {
+                        resultsHTML += `<p>Transcript File Path: ${result.transcript_file_path}</p>`;
+                    }
+                    if (result.summary_file_path) {
+                        resultsHTML += `<p>Summary File Path: ${result.summary_file_path}</p>`;
+                    } else if (!formData.has('skip_summary')) { // If summary wasn't skipped but no path
+                        resultsHTML += `<p>Summary File Path: Not generated (or an issue occurred).</p>`;
+                    }
+                    resultsArea.innerHTML = resultsHTML;
+                } else {
+                    statusLog.textContent += "Status: Error\n";
+                    if (result.message) {
+                        statusLog.textContent += `Message: ${result.message}\n`;
+                    } else if (!response.ok) {
+                         statusLog.textContent += `HTTP Error: ${response.status} ${response.statusText}\n`;
+                         if (result.error) { // If backend sends {error: "message"} for non-200
+                            statusLog.textContent += `Details: ${result.error}\n`;
+                         }
+                    }
+                    resultsArea.innerHTML = '<p>Pipeline encountered an error. Check status log for details.</p>';
+                }
+
+            } catch (error) {
+                console.error('Fetch Error:', error);
+                statusLog.textContent = `Client-side error: ${error.message}\nCould not connect to the server or an unexpected error occurred.`;
+                resultsArea.innerHTML = '<p>Failed to run pipeline due to a network or client-side error.</p>';
+            }
+        });
+    </script>
+</body>
+</html>

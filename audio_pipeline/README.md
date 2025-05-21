@@ -10,6 +10,8 @@ The pipeline takes an audio file as input and sequentially processes it through 
 3.  **Speaker Diarization**: Uses NVIDIA NeMo to identify different speakers and assign parts of the transcript to them.
 4.  **Summarization**: Uses a local Large Language Model (LLM) via Ollama to create a structured summary of the conversation.
 
+This project offers both a command-line interface (`run_pipeline.py`) for batch processing and a simple Flask-based web interface for easier interaction.
+
 ## Features
 
 *   **Audio Cleaning**: Pre-processes audio for better transcription quality using `ffmpeg` (mono conversion, 16kHz sample rate, silence removal).
@@ -21,6 +23,7 @@ The pipeline takes an audio file as input and sequentially processes it through 
     *   Transcription segments with timestamps (`.json`)
     *   Speaker-tagged transcription (`_tagged.json`, `.txt`, `.md`)
     *   Summaries (`_summary.txt`, `_summary.md`)
+*   **Command-Line and Web Interface**: Run the pipeline via scripts or a user-friendly web UI.
 
 ## Based On
 
@@ -30,7 +33,10 @@ This project is heavily inspired by the following article:
 ## Directory Structure
 
 *   `scripts/`: Contains all the Python scripts that make up the pipeline.
-*   `input_audio/`: (Recommended) A place to store your input audio files. The pipeline can process files from any path.
+*   `app.py`: The Flask web application file.
+*   `templates/`: Contains HTML templates for the web interface (e.g., `index.html`).
+*   `static/`: (Optional) For static files like CSS or JavaScript if added for the web UI.
+*   `input_audio/`: (Recommended) A place to store your input audio files for processing.
 *   `output/`: The default directory where all processed files (transcripts, diarized text, summaries) are saved.
 *   `README.md`: This file.
 *   `requirements.txt`: Python dependencies for the project.
@@ -72,6 +78,7 @@ Follow these steps to set up and run the audio processing pipeline:
     ```bash
     pip install -r requirements.txt
     ```
+    *   This will install all necessary Python packages, including `openai-whisper`, `nemo_toolkit`, `torch`, `librosa`, `ollama`, and `Flask` (for the web UI).
     *   **Note on `nemo_toolkit`**: The installation of `nemo_toolkit[all]` can be complex and time-consuming. It might have additional system dependencies (like `libsndfile1`). If you encounter issues, please consult the [official NeMo documentation](https://docs.nvidia.com/deeplearning/nemo/user-guide/docs/en/stable/starthere/installation.html) for detailed installation instructions and troubleshooting.
 
 **4. Set up Ollama**
@@ -85,9 +92,9 @@ Follow these steps to set up and run the audio processing pipeline:
     ```
     Ensure the Ollama server is running before executing the pipeline if you intend to use the summarization step.
 
-## Running the Pipeline
+## Running the Pipeline (Command-Line)
 
-The main script to run the entire pipeline is `run_pipeline.py` located in the `scripts/` directory.
+The main script to run the entire pipeline via the command line is `run_pipeline.py` located in the `scripts/` directory.
 
 **Basic Usage Example:**
 
@@ -116,9 +123,29 @@ Example with more options:
 python scripts/run_pipeline.py "input_audio/lecture.ogg" --transcribe_lang en --diarize_max_speakers 2 --summarize_model llama3:8b
 ```
 
+## Web Interface Usage
+
+For a more interactive experience, you can use the Flask web interface.
+
+**1. Start the Web Server:**
+   * Navigate to the `audio_pipeline` directory in your terminal.
+   * Ensure your Python virtual environment is activated (e.g., `source .venv/bin/activate` on Linux/macOS or `.venv\Scripts\activate` on Windows).
+   * Run the Flask application:
+     ```bash
+     python app.py
+     ```
+   * This will typically start a local web server at `http://127.0.0.1:5001` (or `http://localhost:5001`). Check the terminal output from `app.py` for the exact address.
+
+**2. Using the Interface:**
+   * Open the provided URL (e.g., `http://127.0.0.1:5001`) in your web browser.
+   * Use the form to upload your audio file and configure pipeline parameters (similar to the command-line options).
+   * Click "Run Pipeline".
+   * Status messages and logs from the pipeline execution will be displayed on the page in the "Status" area.
+   * Upon completion, paths to the key output files (e.g., Markdown transcript and summary) will be shown in the "Results" area. These files are saved in the `output/` directory (or your configured output directory).
+
 ## Output
 
-The pipeline generates several files in the specified output directory (default is `output/`). Assuming your input file was `meeting_audio.wav` and it was cleaned:
+The pipeline generates several files in the specified output directory (default is `output/` within the project structure). Whether you use the command-line tool or the web interface, the output files are saved to this directory. Assuming your input file was `meeting_audio.wav` and it was cleaned:
 
 *   `output/meeting_audio_cleaned.wav`: The cleaned audio file.
 *   `output/meeting_audio_cleaned.json`: Raw Whisper transcription segments with timestamps.
@@ -129,7 +156,7 @@ The pipeline generates several files in the specified output directory (default 
 *   `output/meeting_audio_cleaned_tagged_summary.txt`: Text summary from the LLM.
 *   `output/meeting_audio_cleaned_tagged_summary.md`: Markdown formatted summary from the LLM.
 
-If audio cleaning is skipped, filenames will be based on the original input audio filename.
+If audio cleaning is skipped, filenames will be based on the original input audio filename. The web interface will display the relative paths to these generated files.
 
 ## Troubleshooting
 
@@ -146,5 +173,9 @@ If audio cleaning is skipped, filenames will be based on the original input audi
     *   Ensure `ffmpeg` is installed and accessible in your system's PATH.
 *   **Python Version**:
     *   This project is developed with Python 3. Ensure you are using a compatible Python version (e.g., Python 3.9+).
+*   **Web Interface Issues**:
+    *   Ensure Flask is installed (`pip install -r requirements.txt`).
+    *   Check the terminal output from `python app.py` for any error messages when starting the server or processing requests.
 
 This README provides a comprehensive guide to get started with the local audio processing pipeline.
+```
