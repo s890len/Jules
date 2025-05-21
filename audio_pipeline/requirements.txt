@@ -1,0 +1,12 @@
+# Core ML/Audio Processing
+openai-whisper
+nemo_toolkit[all] # As recommended by NVIDIA for full features, including diarization
+torch
+librosa # Used by diarize_nemo_auto.py for audio loading initially, though NeMo might also have its own. Good to keep.
+ollama # Python client for Ollama
+
+# Potentially other dependencies if NeMo's [all] doesn't cover everything or if specific versions are needed.
+# For now, these are the main ones identified.
+# Add any other libraries that were explicitly imported in the scripts and are not standard library.
+# argparse, os, time, json, pathlib, subprocess, sys are standard library.
+# omegaconf is expected to be covered by nemo_toolkit[all]
